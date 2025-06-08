@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birth Moon Phase Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        .moon {
+            transition: all 0.5s ease;
+        }
+        
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.2; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.2; }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .moon-glow {
+            filter: drop-shadow(0 0 8px rgba(214, 214, 214, 0.6));
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="stars"></div>
+    
+    <div class="container mx-auto max-w-3xl relative z-10">
+        <header class="text-center py-8">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-purple-200">Birth Moon Phase</h1>
+            <p class="text-blue-200 text-lg">Discover the moon phase on your birth date</p>
+        </header>
+        
+        <div class="bg-gray-900/70 backdrop-blur-md rounded-xl p-6 shadow-lg border border-gray-800">
+            <div class="mb-8">
+                <label for="birthdate" class="block text-lg mb-2 text-blue-200">Enter your birth date:</label>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <input 
+                        type="date" 
+                        id="birthdate" 
+                        class="flex-grow py-3 px-4 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                    <button 
+                        id="calculate" 
+                        class="py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg font-medium hover:opacity-90 transition-opacity"
+                    >
+                        Calculate Moon Phase
+                    </button>
+                </div>
+            </div>
+            
+            <div id="result" class="hidden">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-semibold mb-1">Your Moon Phase:</h2>
+                    <p id="phase-name" class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300"></p>
+                    <p id="phase-date" class="text-lg text-blue-200 mt-1"></p>
+                </div>
+                
+                <div class="flex justify-center my-8">
+                    <div class="w-40 h-40 moon-glow floating" id="moon-display"></div>
+                </div>
+                
+                <div class="mt-8 bg-gray-800/50 rounded-lg p-5">
+                    <h3 class="text-xl font-semibold mb-3 text-blue-200">About Your Moon Phase:</h3>
+                    <p id="phase-description" class="text-gray-300 leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+        
+        <footer class="text-center text-gray-400 mt-8 text-sm">
+            <p>The moon's cycle takes approximately 29.5 days to complete, moving through 12 distinct phases.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create stars background
+            createStars();
+            
+            // Moon phases data - now with 12 phases for greater accuracy
+            const moonPhases = [
+                {
+                    name: "New Moon",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/></svg>`,
+                    description: "The New Moon represents new beginnings and fresh starts. It's a time for setting intentions and planting seeds for future growth. People born under the New Moon are often visionaries with a strong sense of purpose. They tend to be introspective, intuitive, and have a natural ability to initiate new projects and ideas."
+                },
+                {
+                    name: "Waxing Crescent (Early)",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a45,45 0 0,1 0,90 a30,45 0 0,0 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Early Waxing Crescent phase represents the first stirrings of growth. Those born during this phase often possess a pioneering spirit and the courage to venture into the unknown. You likely have a natural curiosity, an adventurous nature, and the ability to see potential where others might not."
+                },
+                {
+                    name: "Waxing Crescent",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a45,45 0 0,1 0,90 a20,45 0 0,0 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Waxing Crescent phase symbolizes growth and development. Those born during this phase often possess determination and the ability to overcome obstacles. They're builders who work steadily toward their goals. You likely have a youthful spirit, enthusiasm for new ventures, and the courage to pursue your dreams despite challenges."
+                },
+                {
+                    name: "First Quarter",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a45,45 0 0,1 0,90 a0,45 0 0,0 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The First Quarter moon represents decision and action. People born under this phase often face challenges head-on and are natural problem-solvers. They possess strong willpower and determination. You likely have a decisive nature, are action-oriented, and have the strength to push through obstacles with confidence and clarity."
+                },
+                {
+                    name: "Waxing Gibbous (Early)",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a45,45 0 0,1 0,90 a-10,45 0 0,0 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Early Waxing Gibbous phase represents the transition from action to refinement. Those born during this phase often possess both decisive action and attention to detail. You likely have a balanced approach to life, combining the ability to make decisions with the patience to perfect your work."
+                },
+                {
+                    name: "Waxing Gibbous",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a45,45 0 0,1 0,90 a-20,45 0 0,0 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Waxing Gibbous phase represents refinement and perfection. Those born during this phase are often detail-oriented and analytical. They strive for excellence and have a natural ability to improve systems and processes. You likely have a meticulous nature, are highly observant, and possess the patience to refine your skills and projects to their highest potential."
+                },
+                {
+                    name: "Full Moon",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="45" fill="#D6D6D6" stroke="#666" stroke-width="1"/></svg>`,
+                    description: "The Full Moon represents illumination and completion. People born under the Full Moon often have heightened intuition and emotional awareness. They're natural connectors who bring people together and see the full picture of situations. You likely have strong emotional intelligence, are highly creative, and possess a natural ability to understand others' feelings and motivations."
+                },
+                {
+                    name: "Waning Gibbous (Early)",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a-45,45 0 0,0 0,90 a-10,45 0 0,1 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Early Waning Gibbous phase represents the beginning of reflection and sharing. Those born during this phase often possess both emotional awareness and the desire to communicate their insights. You likely have a natural ability to process experiences and share your wisdom with others in a compassionate way."
+                },
+                {
+                    name: "Waning Gibbous",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a-45,45 0 0,0 0,90 a-20,45 0 0,1 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Waning Gibbous phase represents gratitude and sharing. Those born during this phase often have a natural ability to teach and communicate. They're generous with their knowledge and resources, finding fulfillment in helping others. You likely have a giving nature, are naturally communicative, and possess wisdom that you feel compelled to share with others."
+                },
+                {
+                    name: "Last Quarter",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a-45,45 0 0,0 0,90 a0,45 0 0,1 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Last Quarter moon represents release and forgiveness. People born under this phase often have strong introspective abilities and can let go of what no longer serves them. They're natural philosophers who understand life's cycles. You likely have a reflective nature, are good at resolving conflicts, and possess the wisdom to know when to release outdated patterns or relationships."
+                },
+                {
+                    name: "Waning Crescent (Late)",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a-45,45 0 0,0 0,90 a10,45 0 0,1 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Late Waning Crescent phase represents the transition from release to rest. Those born during this phase often possess both the ability to let go and the wisdom to prepare for new beginnings. You likely have a contemplative nature, are spiritually attuned, and understand the importance of both endings and beginnings."
+                },
+                {
+                    name: "Waning Crescent",
+                    svg: `<svg viewBox="0 0 100 100" class="w-full h-full">
+                            <circle cx="50" cy="50" r="45" fill="#16213e" stroke="#666" stroke-width="1"/>
+                            <path d="M50,5 a-45,45 0 0,0 0,90 a20,45 0 0,1 0,-90" fill="#D6D6D6"/>
+                        </svg>`,
+                    description: "The Waning Crescent phase represents surrender and rest. Those born during this phase often have a deep connection to their subconscious and dreams. They understand the importance of rest and preparation before new beginnings. You likely have an intuitive nature, are spiritually attuned, and possess the wisdom to know when to retreat and recharge before starting new ventures."
+                }
+            ];
+            
+            // Calculate button click handler
+            document.getElementById('calculate').addEventListener('click', function() {
+                const birthdateInput = document.getElementById('birthdate').value;
+                
+                if (!birthdateInput) {
+                    alert('Please enter your birth date');
+                    return;
+                }
+                
+                const birthdate = new Date(birthdateInput);
+                const moonPhase = calculateMoonPhase(birthdate);
+                
+                // Display result
+                document.getElementById('result').classList.remove('hidden');
+                document.getElementById('phase-name').textContent = moonPhases[moonPhase].name;
+                document.getElementById('phase-date').textContent = formatDate(birthdate);
+                document.getElementById('phase-description').textContent = moonPhases[moonPhase].description;
+                
+                // Display the moon phase SVG
+                document.getElementById('moon-display').innerHTML = moonPhases[moonPhase].svg;
+                
+                // Scroll to result
+                document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            
+            // Calculate moon phase (using a simplified algorithm)
+            function calculateMoonPhase(date) {
+                // Known new moon reference date
+                const knownNewMoon = new Date('2000-01-06');
+                
+                // Moon cycle is approximately 29.53 days
+                const moonCycleDays = 29.53;
+                
+                // Calculate days since known new moon
+                const daysSinceNewMoon = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
+                
+                // Calculate current position in cycle (0 to 1)
+                const position = (daysSinceNewMoon % moonCycleDays) / moonCycleDays;
+                
+                // Convert to phase index (0-11) for 12 phases
+                const phaseIndex = Math.floor(position * 12) % 12;
+                
+                return phaseIndex;
+            }
+            
+            // Format date for display
+            function formatDate(date) {
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                return date.toLocaleDateString(undefined, options);
+            }
+            
+            // Create stars background
+            function createStars() {
+                const starsContainer = document.querySelector('.stars');
+                const starCount = 100;
+                
+                for (let i = 0; i < starCount; i++) {
+                    const star = document.createElement('div');
+                    const size = Math.random() * 2 + 1;
+                    
+                    star.style.position = 'absolute';
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.backgroundColor = 'white';
+                    star.style.borderRadius = '50%';
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.opacity = Math.random() * 0.8 + 0.2;
+                    star.style.animation = `twinkle ${Math.random() * 3 + 2}s infinite`;
+                    star.style.animationDelay = `${Math.random() * 5}s`;
+                    
+                    starsContainer.appendChild(star);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
